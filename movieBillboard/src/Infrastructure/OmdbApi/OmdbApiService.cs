@@ -1,43 +1,80 @@
-
+// OmdbApi/OmdbApiService.ts
 import axios from 'axios';
 import { IOmdbApiService } from '../../Domain/Interfaces/IOmdbApiService';
 import { Movie } from '../../Domain/Entities/Movie';
 
 export class OmdbApiService implements IOmdbApiService
 {
-  private readonly apiUrl = 'https://www.deployvision.com/api/omdb';
+  private readonly apiUrl: string;
+private readonly apiKey: string;
+
+constructor(apiUrl: string, apiKey: string) {
+  this.apiUrl = apiUrl;
+  this.apiKey = apiKey;
+}
 
 async fetchMovieByTitle(title: string): Promise < Movie | null > {
-    const response = await axios.get(`${ this.apiUrl}/ search ? title =${ encodeURIComponent(title)}`);
+  try
+  {
+    const response = await axios.get(`${ this.apiUrl}?t =${ encodeURIComponent(title)}
+    &apikey =${ this.apiKey}`);
     const movieData = response.data;
-    if (!movieData) return null;
+
+    // Verificar si la respuesta contiene un error
+    if (movieData.Response === "False")
+    {
+      console.error(`OMDb API error: ${ movieData.Error}`);
+      return null;
+    }
 
     return new Movie(
-      movieData.id,
-      movieData.title,
-      movieData.description,
-      movieData.posterUrl,
-      movieData.releaseYear,
-      movieData.genre,
-      movieData.director,
-      movieData.actors,
-      movieData.imdbRating
+      movieData.imdbID,
+      movieData.Title,
+      movieData.Plot,
+      movieData.Poster,
+      parseInt(movieData.Year),
+      movieData.Genre,
+      movieData.Director,
+      movieData.Actors,
+      parseFloat(movieData.imdbRating)
     );
+  }
+  catch (error)
+  {
+    console.error(`Error fetching movie by title: ${ error.message}`);
+    return null;
+  }
 }
 
 async fetchMoviesBySaga(saga: string): Promise<Movie[]> {
-    const response = await axios.get(`${ this.apiUrl}/ search ? title =${ encodeURIComponent(saga)}`);
-    const moviesData = response.data;
+  try
+  {
+    const response = await axios.get(`${ this.apiUrl}?s =${ encodeURIComponent(saga)}
+    &apikey =${ this.apiKey}`);
+    const moviesData = response.data.Search;
+
+    if (!moviesData || moviesData.length === 0)
+    {
+      console.error("No movies found in saga.");
+      return [];
+    }
+
     return moviesData.map((movieData: any) => new Movie(
-      movieData.id,
-      movieData.title,
-      movieData.description,
-      movieData.posterUrl,
-      movieData.releaseYear,
-      movieData.genre,
-      movieData.director,
-      movieData.actors,
-      movieData.imdbRating
+      movieData.imdbID,
+      movieData.Title,
+      movieData.Plot,
+      movieData.Poster,
+      parseInt(movieData.Year),
+      movieData.Genre,
+      movieData.Director,
+      movieData.Actors,
+      parseFloat(movieData.imdbRating)
     ));
+  }
+  catch (error)
+  {
+    console.error(`Error fetching movies by saga: ${ error.message}`);
+    return [];
+  }
 }
 }
